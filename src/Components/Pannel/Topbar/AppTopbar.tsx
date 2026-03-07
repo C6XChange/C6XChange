@@ -1,16 +1,51 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { Button, Dropdown, InlineStack, TextStyle, Thumbnail, TopBar, VerticalStack } from 'jiffy-ui';
 import user from '../../../assets/images/user.png';
-import { ChevronDown, ChevronLeft, Copy, Eye, FileText, List } from 'jiffy-icons';
-import { LogoutIcon } from '../../../assets/Icons';
+import { Bell, ChevronDown, ChevronLeft, Copy, Eye, FileText, List } from 'jiffy-icons';
+import { BankIcon, LogoutIcon, OrderIcon, ReportIcon, RightArrowIcon, SettingIcon, SupportIcon, WalletIcon } from '../../../assets/Icons';
+import Notification from '../Notification/Notification';
 // import ActionList from 'jiffy-ui/dist/components/Actionlist/Actionlist';
 
 
 const AppTopbar = () => {
-    const { logout, username } = useAuth();
+    const { logout, username, fullName, role } = useAuth();
     const navigate = useNavigate();
+    const [isOpen, setIsOpen] = useState(false);
+    const [totalAvailableCredits, setTotalAvailableCredits] = useState(0);
+
+    // Load and calculate user's total available credits
+    useEffect(() => {
+        if (username) {
+            const storedCredits = localStorage.getItem('creditLimitData');
+            if (storedCredits) {
+                const creditData = JSON.parse(storedCredits);
+                const userCredits = creditData.filter((item: any) => item.user === username);
+                const total = userCredits.reduce((sum: number, item: any) => sum + item.creditAvailable, 0);
+                setTotalAvailableCredits(total);
+            }
+        }
+    }, [username]);
+
+    // Update credits when localStorage changes (using custom event)
+    useEffect(() => {
+        const handleCreditsUpdate = () => {
+            if (username) {
+                const storedCredits = localStorage.getItem('creditLimitData');
+                if (storedCredits) {
+                    const creditData = JSON.parse(storedCredits);
+                    const userCredits = creditData.filter((item: any) => item.user === username);
+                    const total = userCredits.reduce((sum: number, item: any) => sum + item.creditAvailable, 0);
+                    setTotalAvailableCredits(total);
+                }
+            }
+        };
+
+        // Listen for custom credit update event
+        window.addEventListener('creditsUpdated', handleCreditsUpdate);
+        return () => window.removeEventListener('creditsUpdated', handleCreditsUpdate);
+    }, [username]);
 
     const handleLogout = () => {
         logout();
@@ -62,25 +97,69 @@ const AppTopbar = () => {
 
 
     const userMenu = (
-        <div style={{ padding: "8px", minWidth: "200px" }}>
+        <div style={{ padding: "8px", minWidth: "270px" }}>
           <div style={{ padding: "12px", borderBottom: "1px solid #eee", marginBottom: "8px" }}>
-            <strong>{username || 'User'}</strong>
-            <div style={{ fontSize: "12px", color: "#666" }}>Logged in</div>
+            <strong>{fullName || username || 'User'}</strong>
+            <div style={{ fontSize: "12px", color: "#666" }}>{role || 'User'}</div>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-            <button style={{ padding: "8px 12px", border: "none", background: "none", textAlign: "left", cursor: "pointer" }}>
-              Profile Settings
+          <div className='user-menu-items'>
+            
+            <button className='user-menu-item'>
+              <WalletIcon />
+              <span className='user-menu-item-text'>
+                Available Credits
+                <span className='user-menu-item-value'>
+                  {totalAvailableCredits.toLocaleString()} tCO2e
+                </span>
+              </span>
+              <RightArrowIcon />
             </button>
-            <button style={{ padding: "8px 12px", border: "none", background: "none", textAlign: "left", cursor: "pointer" }}>
-              Billing
+            <button className='user-menu-item'>
+              <OrderIcon />
+              <span className='user-menu-item-text'>
+                Transactions
+               
+              </span>
+              <RightArrowIcon />
             </button>
-            <button style={{ padding: "8px 12px", border: "none", background: "none", textAlign: "left", cursor: "pointer" }}>
-              Support
+            <button className='user-menu-item'>
+              <BankIcon />
+              <span className='user-menu-item-text'>
+                Bank Details
+               
+              </span>
+              <RightArrowIcon />
             </button>
-            <hr style={{ margin: "8px 0", border: "none", borderTop: "1px solid #eee" }} />
-            <button onClick={handleLogout} style={{ padding: "8px 12px", border: "none", background: "none", textAlign: "left", cursor: "pointer", color: "#ef4444" }}>
+            <button className='user-menu-item'>
+            <SupportIcon />
+              <span className='user-menu-item-text'>
+                Support
+               
+              </span>
+              <RightArrowIcon />
+            </button>
+            <button className='user-menu-item'>
+            <ReportIcon />
+              <span className='user-menu-item-text'>
+                Reports
+               
+              </span>
+              <RightArrowIcon />
+            </button>
+            <button className='user-menu-item'>
+            <SettingIcon />
+              <span className='user-menu-item-text'>
+                Settings
+               
+              </span>
+              <RightArrowIcon />
+            </button>
+            <button className='user-menu-item' onClick={handleLogout}>
+              <LogoutIcon />
               Sign Out
             </button>
+            
+            
           </div>
         </div>
       );
@@ -92,14 +171,8 @@ const AppTopbar = () => {
      )
     const connectRight = (
       <>
-        {/* <ActionList
-          items={userMenu1 as any} // temp type patch, fix types to match ActionList requirement
-          variant="Bordered"
-        >
-          <Button variant="Secondary">
-            File Menu
-          </Button>
-        </ActionList> */}
+        <Button variant="Secondary" icon={<Bell color='#fff' />} iconOnly onClick={() => setIsOpen(true)} />
+        <Notification isOpen={isOpen} onDismiss={() => setIsOpen(false)} />
          
         <Dropdown content={userMenu} placement="bottom-end">
           <div className='user-menu-container'>
@@ -111,8 +184,8 @@ const AppTopbar = () => {
                   alt={"User login"}
                 />
                 <VerticalStack gap={0}>
-                  <TextStyle variant='heading' size='sm' tone='subdued' as='p' fontWeight='bold'>{'Arvind kumar'}</TextStyle>
-                  <TextStyle variant='body' size='md' tone='subdued' as='p'>{username || 'User'}</TextStyle>
+                  <TextStyle variant='heading' size='sm' tone='subdued' as='p' fontWeight='bold'>{fullName || username || 'User'}</TextStyle>
+                  <TextStyle variant='body' size='md' tone='subdued' as='p'>{role || 'User'}</TextStyle>
                 </VerticalStack>
               </InlineStack>
             </Button>

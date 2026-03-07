@@ -206,3 +206,43 @@ text-align: center;
 .inverse-color {
   color: #fff;
 }
+
+.jf-modal_inner,
+.jf-modal-content {
+  overflow: visible !important;
+}
+.jf-modal-content .jf-select-container .jf-popover-portal {
+  position: relative !important;
+}
+.jf-modal-content .jf-select-container .jf-popover-portal > .jf-popover-content {
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+}
+
+
+button.user-menu-item {
+  display: flex;
+  cursor: pointer;
+  border-radius: 0;
+  border: none;
+  padding: 15px 10px;
+  width: 100%;
+  position: relative;
+  padding-right: 35px;
+  gap: 11px;
+  transition: 0.3s all;
+  border-bottom: 1px solid #ffefef;
+  background: #ffff;
+  align-items: center;
+}
+span.user-menu-item-text + svg {
+  position: absolute;
+  right: 5px;
+}
+span.user-menu-item-text span {
+  display: block;
+  text-align: left;
+  margin-top: 5px;
+  color: #7f6666;
+}

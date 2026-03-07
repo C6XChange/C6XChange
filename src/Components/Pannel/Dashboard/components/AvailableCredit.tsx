@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './AvailableCredit.css';
-import { Badge, Button, Card, InlineStack, List, TextStyle, VerticalStack } from 'jiffy-ui';
+import { Badge, Button, Card, InlineStack, List, Modal, Select, TextField, TextStyle, VerticalStack } from 'jiffy-ui';
 import { creditLimitData } from '../../../Data/AvailableCreditData';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../../context/AuthContext';
 
 interface AvailableCreditProps {
   creditAmount?: number;
@@ -11,17 +12,336 @@ interface AvailableCreditProps {
   lastUpdated?: string;
 }
 
+interface SellCreditForm {
+  tokenType: string;
+  numberOfCredits: string;
+  pricePerCredit: string;
+  totalValue: string;
+  creditItemIndex?: number;
+}
+
+interface SoldCredit extends SellCreditForm {
+  id: string;
+  timestamp: string;
+  creditLabel: string;
+}
+
+interface CreditItem {
+  label: string;
+  creditAvailable: number;
+  companyName: string;
+  location: string;
+  tags: string[];
+  creditLimit: number;
+  utilization: number;
+  status: string;
+  lastUpdated: string;
+  user?: string;
+}
+
 const AvailableCredit: React.FC<AvailableCreditProps> = () => {
   const navigate = useNavigate();
+  const { username } = useAuth();
 
   const handleViewMore = () => {
     navigate('/C6XChange/dashboard/credit-limit');
   };
 
+  const [open, setOpen] = useState(false);
+  const [buyOpen, setBuyOpen] = useState(false);
+  const [creditData, setCreditData] = useState<CreditItem[]>([]);
+  const [sellForm, setSellForm] = useState<SellCreditForm>({
+    tokenType: '',
+    numberOfCredits: '',
+    pricePerCredit: '',
+    totalValue: '0',
+    creditItemIndex: undefined
+  });
+  const [buyForm, setBuyForm] = useState<SellCreditForm>({
+    tokenType: '',
+    numberOfCredits: '',
+    pricePerCredit: '',
+    totalValue: '0',
+    creditItemIndex: undefined
+  });
+
+  useEffect(() => {
+    const storedCredits = localStorage.getItem('creditLimitData');
+    if (storedCredits) {
+      const parsed = JSON.parse(storedCredits);
+      // Check if stored data has user field, if not, reset with fresh data
+      if (parsed.length > 0 && !parsed[0].hasOwnProperty('user')) {
+        console.log('Stored data missing user field, resetting with fresh data');
+        setCreditData(creditLimitData);
+        localStorage.setItem('creditLimitData', JSON.stringify(creditLimitData));
+      } else {
+        console.log('Loading credit data from localStorage:', parsed);
+        setCreditData(parsed);
+      }
+    } else {
+      console.log('No stored data, using fresh creditLimitData:', creditLimitData);
+      setCreditData(creditLimitData);
+      localStorage.setItem('creditLimitData', JSON.stringify(creditLimitData));
+    }
+  }, []);
+
+  // Debug log to see current state
+  useEffect(() => {
+    console.log('Current logged in user:', username);
+    console.log('Current credit data:', creditData);
+  }, [username, creditData]);
+
+  // Calculate and alert total available credits for logged-in user
+  useEffect(() => {
+    if (username && creditData.length > 0) {
+      const userCredits = creditData.filter(item => item.user === username);
+      const totalAvailableCredits = userCredits.reduce((sum, item) => sum + item.creditAvailable, 0);
+      
+      if (userCredits.length > 0) {
+        const creditDetails = userCredits.map(item => 
+          `${item.label}: ${item.creditAvailable.toLocaleString()} tCO2e`
+        ).join('\n');
+        
+        alert(
+          `Welcome ${username}!\n\n` +
+          `Your Total Available Credits: ${totalAvailableCredits.toLocaleString()} tCO2e\n\n` +
+          `Credit Breakdown:\n${creditDetails}`
+        );
+      } else {
+        alert(`Welcome ${username}!\n\nYou currently have no credits available.`);
+      }
+    }
+  }, [username, creditData]);
+
+  useEffect(() => {
+    const credits = parseFloat(sellForm.numberOfCredits) || 0;
+    const price = parseFloat(sellForm.pricePerCredit) || 0;
+    const total = (credits * price).toFixed(2);
+    setSellForm(prev => ({ ...prev, totalValue: total }));
+  }, [sellForm.numberOfCredits, sellForm.pricePerCredit]);
+
+  useEffect(() => {
+    const credits = parseFloat(buyForm.numberOfCredits) || 0;
+    const price = parseFloat(buyForm.pricePerCredit) || 0;
+    const total = (credits * price).toFixed(2);
+    setBuyForm(prev => ({ ...prev, totalValue: total }));
+  }, [buyForm.numberOfCredits, buyForm.pricePerCredit]);
+
+  const getSoldCredits = (): SoldCredit[] => {
+    const stored = localStorage.getItem('soldCredits');
+    return stored ? JSON.parse(stored) : [];
+  };
+
+  const saveSoldCredit = (credit: SoldCredit) => {
+    const soldCredits = getSoldCredits();
+    soldCredits.push(credit);
+    localStorage.setItem('soldCredits', JSON.stringify(soldCredits));
+  };
+
+  const handleSellCredit = () => {
+    console.log('sellForm');
+    if (!sellForm.tokenType || !sellForm.numberOfCredits || !sellForm.pricePerCredit) {
+      alert('Please fill in all fields');
+      return;
+    }
+
+    if (sellForm.creditItemIndex === undefined) {
+      alert('Error: Credit item not selected');
+      return;
+    }
+
+    const numberOfCreditsToSell = parseFloat(sellForm.numberOfCredits);
+    const currentCreditItem = creditData[sellForm.creditItemIndex];
+
+    if (numberOfCreditsToSell > currentCreditItem.creditAvailable) {
+      alert(`Insufficient credits. Only ${currentCreditItem.creditAvailable} credits available.`);
+      return;
+    }
+
+    const updatedCreditData = [...creditData];
+    updatedCreditData[sellForm.creditItemIndex] = {
+      ...currentCreditItem,
+      creditAvailable: currentCreditItem.creditAvailable - numberOfCreditsToSell
+    };
+
+    setCreditData(updatedCreditData);
+    localStorage.setItem('creditLimitData', JSON.stringify(updatedCreditData));
+
+    // Dispatch custom event to notify other components of credit update
+    window.dispatchEvent(new Event('creditsUpdated'));
+
+    const soldCredit: SoldCredit = {
+      ...sellForm,
+      creditLabel: currentCreditItem.label,
+      id: `credit_${Date.now()}`,
+      timestamp: new Date().toISOString()
+    };
+
+    saveSoldCredit(soldCredit);
+    
+    alert(`Credit sold successfully! ${numberOfCreditsToSell} credits sold from ${currentCreditItem.label}`);
+    
+    setSellForm({
+      tokenType: '',
+      numberOfCredits: '',
+      pricePerCredit: '',
+      totalValue: '0',
+      creditItemIndex: undefined
+    });
+    
+    setOpen(false);
+  };
+
+  const handleCancel = () => {
+    setSellForm({
+      tokenType: '',
+      numberOfCredits: '',
+      pricePerCredit: '',
+      totalValue: '0',
+      creditItemIndex: undefined
+    });
+    setOpen(false);
+  };
+
+  const handleOpenSellModal = (index: number) => {
+    setSellForm(prev => ({
+      ...prev,
+      creditItemIndex: index
+    }));
+    setOpen(true);
+  };
+
+  const handleOpenBuyModal = (index: number) => {
+    setBuyForm(prev => ({
+      ...prev,
+      creditItemIndex: index
+    }));
+    setBuyOpen(true);
+  };
+
+  const handleBuyCredit = () => {
+    if (!buyForm.tokenType || !buyForm.numberOfCredits || !buyForm.pricePerCredit) {
+      alert('Please fill in all fields');
+      return;
+    }
+
+    if (buyForm.creditItemIndex === undefined) {
+      alert('Error: Credit item not selected');
+      return;
+    }
+
+    const numberOfCreditsToBuy = parseFloat(buyForm.numberOfCredits);
+    const currentCreditItem = creditData[buyForm.creditItemIndex];
+
+    if (numberOfCreditsToBuy > currentCreditItem.creditAvailable) {
+      alert(`Insufficient credits. Only ${currentCreditItem.creditAvailable} credits available.`);
+      return;
+    }
+
+    const buyRequest = {
+      ...buyForm,
+      creditLabel: currentCreditItem.label,
+      id: `buy_${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      username: username,
+      seller: currentCreditItem.user
+    };
+
+    // Save to buyRequests in localStorage
+    const existingBuyRequests = localStorage.getItem('buyRequests');
+    const buyRequests = existingBuyRequests ? JSON.parse(existingBuyRequests) : [];
+    buyRequests.push(buyRequest);
+    localStorage.setItem('buyRequests', JSON.stringify(buyRequests));
+    
+    // Dispatch custom event to notify other components
+    window.dispatchEvent(new Event('creditsUpdated'));
+    
+    alert(`Buy request submitted successfully! ${numberOfCreditsToBuy} credits requested from ${currentCreditItem.label}`);
+    
+    setBuyForm({
+      tokenType: '',
+      numberOfCredits: '',
+      pricePerCredit: '',
+      totalValue: '0',
+      creditItemIndex: undefined
+    });
+    
+    setBuyOpen(false);
+  };
+
+  const handleBuyCancel = () => {
+    setBuyForm({
+      tokenType: '',
+      numberOfCredits: '',
+      pricePerCredit: '',
+      totalValue: '0',
+      creditItemIndex: undefined
+    });
+    setBuyOpen(false);
+  };
+
+  const showMyCredits = () => {
+    if (username && creditData.length > 0) {
+      const userCredits = creditData.filter(item => item.user === username);
+      const totalAvailableCredits = userCredits.reduce((sum, item) => sum + item.creditAvailable, 0);
+      
+      if (userCredits.length > 0) {
+        const creditDetails = userCredits.map(item => 
+          `• ${item.label}: ${item.creditAvailable.toLocaleString()} tCO2e`
+        ).join('\n');
+        
+        alert(
+          `📊 Your Credit Summary\n\n` +
+          `Total Available Credits: ${totalAvailableCredits.toLocaleString()} tCO2e\n\n` +
+          `Credit Breakdown:\n${creditDetails}`
+        );
+      } else {
+        alert(`You currently have no credits available.`);
+      }
+    }
+  };
+
   return (
+    <>
+    {username && creditData.length > 0 && (
+      <Card>
+        <div style={{ 
+          padding: '20px', 
+          backgroundColor: '#f0f7ff', 
+          borderRadius: '8px',
+          marginBottom: '20px'
+        }}>
+          <InlineStack gap={4} align='center' justifyContent='start'>
+            <div style={{ 
+              fontSize: '48px',
+              filter: 'grayscale(0%)'
+            }}>💰</div>
+            <VerticalStack gap={1}>
+              <TextStyle variant='heading' size='md' tone='subdued' as='h3' fontWeight='bold'>
+                Your Total Available Credits
+              </TextStyle>
+              <TextStyle variant='heading' size='2xl' as='h2' fontWeight='bold' tone='success'>
+                {creditData
+                  .filter(item => item.user === username)
+                  .reduce((sum, item) => sum + item.creditAvailable, 0)
+                  .toLocaleString()} tCO2e
+              </TextStyle>
+              <TextStyle variant='body' size='sm' tone='subdued' as='p'>
+                {creditData.filter(item => item.user === username).length} credit source(s)
+              </TextStyle>
+            </VerticalStack>
+          </InlineStack>
+        </div>
+      </Card>
+    )}
     <Card header={{
         title: 'Available Credit',
         actions: [
+            {
+                label: 'My Credits',
+                icon: 'wallet',
+                onClick: showMyCredits
+            },
             {
                 label: 'View',
                 icon: 'eye',
@@ -30,7 +350,7 @@ const AvailableCredit: React.FC<AvailableCreditProps> = () => {
         ]
     }}>
         <div className='credit-limit-data'>
-            {creditLimitData.slice(0, 2).map((item, index) => (
+            {creditData.slice(0, 2).map((item, index) => (
                 <div className='credit-limit-item' key={index}>
                     <div className='credit-limit-item-inner'>
                         <div className='credit-limit-item-content'>
@@ -90,15 +410,124 @@ const AvailableCredit: React.FC<AvailableCreditProps> = () => {
                             </TextStyle>
                         </div>
                     </div>
-                    <InlineStack align={"stretch"} justifyContent={'between'}>
-                        <Button type='button' size='Large' color='Positive'>
-                            Buy Now
-                        </Button>
+                    <InlineStack align={"stretch"} justifyContent={'start'} gap={3}>
+                        {item.user === username ? (
+                            <Button type='button' size='Large' color="Primary" onClick={() => handleOpenSellModal(index)}>
+                                Sell now
+                            </Button>
+                        ) : (
+                            <Button type='button' size='Large' color='Positive' onClick={() => handleOpenBuyModal(index)}>
+                                Buy Now
+                            </Button>
+                        )}
                     </InlineStack>
                 </div>
             ))}
         </div>
+
+        <Modal isOpen={open} onDismiss={handleCancel}
+            title="Sell Credit" size='medium'
+            primaryAction={{
+                children: 'Sell Now',
+                onClick: handleSellCredit
+            }}
+            secondaryAction={{
+                children: 'Cancel',
+                onClick: handleCancel
+            }}
+            >
+           
+                <div>
+                    <VerticalStack gap={4}>
+                   <Select 
+                   label="Token Type"
+                   placeholder="Select token type"
+                   value={sellForm.tokenType}
+                   onChange={(value) => setSellForm(prev => ({ ...prev, tokenType: Array.isArray(value) ? value[0] : value }))}
+                   options={[
+                        {label: '100 tCO2e', value: '100'}, 
+                        {label: '200 tCO2e', value: '200'}, 
+                        {label: '300 tCO2e', value: '300'}
+                    ]} />
+                    <TextField
+                    label="Number of Credits"
+                    placeholder="Enter Number of Credits"
+                    type="number"
+                    value={sellForm.numberOfCredits}
+                    onChange={(value: any) => setSellForm(prev => ({ ...prev, numberOfCredits: value }))}
+                    />
+                    <TextField
+                    label="Price per Credit (£)"
+                    placeholder="Enter Price per Credit (£)"
+                    type="number"
+                    value={sellForm.pricePerCredit}
+                    onChange={(value: any) => setSellForm(prev => ({ ...prev, pricePerCredit: value }))}
+                    />
+                    <TextField
+                        disabled={true}
+                        label="Total Value (£)"
+                        placeholder="Total Value"
+                        value={sellForm.totalValue}
+                        onChange={(value: any) => {}}
+                    />
+                    </VerticalStack>
+                    
+                </div>
+            
+        </Modal>
+
+        <Modal isOpen={buyOpen} onDismiss={handleBuyCancel}
+            title="Buy Credit" size='medium'
+            primaryAction={{
+                children: 'Submit Buy Request',
+                onClick: handleBuyCredit
+            }}
+            secondaryAction={{
+                children: 'Cancel',
+                onClick: handleBuyCancel
+            }}
+            >
+           
+                <div>
+                    <VerticalStack gap={4}>
+                   <Select 
+                   label="Token Type"
+                   placeholder="Select token type"
+                   value={buyForm.tokenType}
+                   onChange={(value) => setBuyForm(prev => ({ ...prev, tokenType: Array.isArray(value) ? value[0] : value }))}
+                   options={[
+                        {label: '100 tCO2e', value: '100'}, 
+                        {label: '200 tCO2e', value: '200'}, 
+                        {label: '300 tCO2e', value: '300'}
+                    ]} />
+                    <TextField
+                    label="Number of Credits"
+                    placeholder="Enter Number of Credits"
+                    type="number"
+                    value={buyForm.numberOfCredits}
+                    onChange={(value: any) => setBuyForm(prev => ({ ...prev, numberOfCredits: value }))}
+                    />
+                    <TextField
+                    label="Offer Price per Credit (£)"
+                    placeholder="Enter Offer Price per Credit (£)"
+                    type="number"
+                    value={buyForm.pricePerCredit}
+                    onChange={(value: any) => setBuyForm(prev => ({ ...prev, pricePerCredit: value }))}
+                    />
+                    <TextField
+                        disabled={true}
+                        label="Total Value (£)"
+                        placeholder="Total Value"
+                        value={buyForm.totalValue}
+                        onChange={(value: any) => {}}
+                    />
+                    </VerticalStack>
+                    
+                </div>
+            
+        </Modal>
     </Card>
+    </>
   );
 };
 

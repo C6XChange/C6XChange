@@ -9,6 +9,7 @@ export const creditLimitData= [
         utilization: 50,
         status: 'Active',
         lastUpdated: '2026-02-10', 
+        user: 'user1'
     },
     {
         label: 'Solar Farm Beta - US',
@@ -20,6 +21,7 @@ export const creditLimitData= [
         utilization: 70,
         status: 'Active',
         lastUpdated: '2026-02-10',
+        user: 'user2'
     },
     {
         label: 'Solar Farm Gamma - Germany',
@@ -31,6 +33,7 @@ export const creditLimitData= [
         utilization: 80,
         status: 'Active',
         lastUpdated: '2026-02-10',
+        user: 'user3'
     },
     {
         label: 'Solar Farm Delta - France',
@@ -42,5 +45,6 @@ export const creditLimitData= [
         utilization: 90,
         status: 'Active',
         lastUpdated: '2026-02-10',
+        user: 'user4'
     },
 ]

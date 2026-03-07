@@ -53,11 +53,28 @@ const Login = () => {
                                         demonstrate, document
                                     </p>
                                 </div>
+                                <div style={{
+                                    padding: '12px',
+                                    backgroundColor: '#f0f4ff',
+                                    borderRadius: '8px',
+                                    border: '1px solid #d0dff7',
+                                    marginBottom: '10px'
+                                }}>
+                                    <p style={{ fontWeight: 'bold', marginBottom: '8px', fontSize: '14px', color: '#334155', margin: 0 }}>
+                                        Test Users:
+                                    </p>
+                                    <div style={{ fontSize: '13px', color: '#475569', lineHeight: '1.6', marginTop: '8px' }}>
+                                        <div>• user1 / password1 (Admin)</div>
+                                        <div>• user2 / password2 (Manager)</div>
+                                        <div>• user3 / password3 (Trader)</div>
+                                        <div>• user4 / password4 (Analyst)</div>
+                                    </div>
+                                </div>
                                 <VerticalStack gap={5}>
                                     <TextField
                                         label='Username'
                                         required={true}
-                                        placeholder='Enter your username (admin)'
+                                        placeholder='Enter your username'
                                         type='text'
                                         value={email}
                                         onChange={(value: any) => {
@@ -73,7 +90,7 @@ const Login = () => {
 
                                     <TextField
                                         label='Password'
-                                        placeholder='Enter your password (admin123)'
+                                        placeholder='Enter your password'
                                         required={true}
                                         type='password'
                                         value={password}

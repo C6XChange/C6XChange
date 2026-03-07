@@ -35,9 +35,9 @@ const Dashboard = () => {
                             <ChartSummary />
                         
                         <AvailableCredit />
-                        <Card header={{title: 'Recent Purchases'}}>
+                        
                             <RecentPurchaseCard />
-                        </Card>
+                        
                     </VerticalStack>
                 </FlexLayoutItem>
                 <FlexLayoutItem cols={{ sm: '12', md: '12', lg: '4', xl: '4'}}>
