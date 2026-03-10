@@ -4,6 +4,7 @@ import { Badge, Button, Card, InlineStack, List, Modal, Select, TextField, TextS
 import { creditLimitData } from '../../../Data/AvailableCreditData';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../../context/AuthContext';
+import { useToast } from '../../../../context/ToastContext';
 
 interface AvailableCreditProps {
   creditAmount?: number;
@@ -42,6 +43,7 @@ interface CreditItem {
 const AvailableCredit: React.FC<AvailableCreditProps> = () => {
   const navigate = useNavigate();
   const { username } = useAuth();
+  const toast = useToast();
 
   const handleViewMore = () => {
     navigate('/C6XChange/dashboard/credit-limit');
@@ -141,12 +143,12 @@ const AvailableCredit: React.FC<AvailableCreditProps> = () => {
   const handleSellCredit = () => {
     console.log('sellForm');
     if (!sellForm.tokenType || !sellForm.numberOfCredits || !sellForm.pricePerCredit) {
-      alert('Please fill in all fields');
+      toast.warning('Please fill in all fields', 'Missing Information');
       return;
     }
 
     if (sellForm.creditItemIndex === undefined) {
-      alert('Error: Credit item not selected');
+      toast.error('Error: Credit item not selected', 'Selection Error');
       return;
     }
 
@@ -179,7 +181,10 @@ const AvailableCredit: React.FC<AvailableCreditProps> = () => {
 
     saveSoldCredit(soldCredit);
     
-    // alert(`Credit sold successfully! ${numberOfCreditsToSell} credits sold from ${currentCreditItem.label}`);
+    toast.success(
+      `${numberOfCreditsToSell} credits sold successfully from ${currentCreditItem.label}`,
+      'Credit Sold'
+    );
     
     setSellForm({
       tokenType: '',
@@ -221,12 +226,12 @@ const AvailableCredit: React.FC<AvailableCreditProps> = () => {
 
   const handleBuyCredit = () => {
     if (!buyForm.tokenType || !buyForm.numberOfCredits || !buyForm.pricePerCredit) {
-      alert('Please fill in all fields');
+      toast.warning('Please fill in all fields', 'Missing Information');
       return;
     }
 
     if (buyForm.creditItemIndex === undefined) {
-      alert('Error: Credit item not selected');
+      toast.error('Error: Credit item not selected', 'Selection Error');
       return;
     }
 
@@ -234,7 +239,10 @@ const AvailableCredit: React.FC<AvailableCreditProps> = () => {
     const currentCreditItem = creditData[buyForm.creditItemIndex];
 
     if (numberOfCreditsToBuy > currentCreditItem.creditAvailable) {
-    //   alert(`Insufficient credits. Only ${currentCreditItem.creditAvailable} credits available.`);
+      toast.warning(
+        `Only ${currentCreditItem.creditAvailable} credits available.`,
+        'Insufficient Credits'
+      );
       return;
     }
 
@@ -257,7 +265,10 @@ const AvailableCredit: React.FC<AvailableCreditProps> = () => {
     // Dispatch custom event to notify other components
     window.dispatchEvent(new Event('creditsUpdated'));
     
-    alert(`Buy request submitted successfully! ${numberOfCreditsToBuy} credits requested from ${currentCreditItem.label}`);
+    toast.success(
+      `${numberOfCreditsToBuy} credits requested successfully from ${currentCreditItem.label}`,
+      'Buy Request Submitted'
+    );
     
     setBuyForm({
       tokenType: '',

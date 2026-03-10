@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Badge, Button, Card, Table, TextStyle, VerticalStack, Modal } from 'jiffy-ui';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '../../context/ToastContext';
 
 interface BuyRequest {
   id: string;
@@ -21,6 +22,7 @@ const AdminDashboard = () => {
     const [modalOpen, setModalOpen] = useState(false);
     const [actionType, setActionType] = useState<'approve' | 'reject' | null>(null);
     const navigate = useNavigate();
+    const toast = useToast();
 
     useEffect(() => {
         // Check admin authentication
@@ -91,7 +93,10 @@ const AdminDashboard = () => {
         setSelectedRequest(null);
         setActionType(null);
 
-        alert(`Request ${actionType === 'approve' ? 'approved' : 'rejected'} successfully!`);
+        toast.success(
+            `Request ${actionType === 'approve' ? 'approved' : 'rejected'} successfully!`,
+            actionType === 'approve' ? 'Request Approved' : 'Request Rejected'
+        );
     };
 
     const updateCreditAvailability = (request: BuyRequest) => {
