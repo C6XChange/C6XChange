@@ -102,13 +102,13 @@ const AvailableCredit: React.FC<AvailableCreditProps> = () => {
           `${item.label}: ${item.creditAvailable.toLocaleString()} tCO2e`
         ).join('\n');
         
-        alert(
-          `Welcome ${username}!\n\n` +
-          `Your Total Available Credits: ${totalAvailableCredits.toLocaleString()} tCO2e\n\n` +
-          `Credit Breakdown:\n${creditDetails}`
-        );
+        // alert(
+        //   `Welcome ${username}!\n\n` +
+        //   `Your Total Available Credits: ${totalAvailableCredits.toLocaleString()} tCO2e\n\n` +
+        //   `Credit Breakdown:\n${creditDetails}`
+        // );
       } else {
-        alert(`Welcome ${username}!\n\nYou currently have no credits available.`);
+        // alert(`Welcome ${username}!\n\nYou currently have no credits available.`);
       }
     }
   }, [username, creditData]);
@@ -154,7 +154,7 @@ const AvailableCredit: React.FC<AvailableCreditProps> = () => {
     const currentCreditItem = creditData[sellForm.creditItemIndex];
 
     if (numberOfCreditsToSell > currentCreditItem.creditAvailable) {
-      alert(`Insufficient credits. Only ${currentCreditItem.creditAvailable} credits available.`);
+    //   alert(`Insufficient credits. Only ${currentCreditItem.creditAvailable} credits available.`);
       return;
     }
 
@@ -179,7 +179,7 @@ const AvailableCredit: React.FC<AvailableCreditProps> = () => {
 
     saveSoldCredit(soldCredit);
     
-    alert(`Credit sold successfully! ${numberOfCreditsToSell} credits sold from ${currentCreditItem.label}`);
+    // alert(`Credit sold successfully! ${numberOfCreditsToSell} credits sold from ${currentCreditItem.label}`);
     
     setSellForm({
       tokenType: '',
@@ -234,7 +234,7 @@ const AvailableCredit: React.FC<AvailableCreditProps> = () => {
     const currentCreditItem = creditData[buyForm.creditItemIndex];
 
     if (numberOfCreditsToBuy > currentCreditItem.creditAvailable) {
-      alert(`Insufficient credits. Only ${currentCreditItem.creditAvailable} credits available.`);
+    //   alert(`Insufficient credits. Only ${currentCreditItem.creditAvailable} credits available.`);
       return;
     }
 
@@ -244,7 +244,8 @@ const AvailableCredit: React.FC<AvailableCreditProps> = () => {
       id: `buy_${Date.now()}`,
       timestamp: new Date().toISOString(),
       username: username,
-      seller: currentCreditItem.user
+      seller: currentCreditItem.user,
+      status: 'pending'
     };
 
     // Save to buyRequests in localStorage
@@ -290,13 +291,13 @@ const AvailableCredit: React.FC<AvailableCreditProps> = () => {
           `• ${item.label}: ${item.creditAvailable.toLocaleString()} tCO2e`
         ).join('\n');
         
-        alert(
-          `📊 Your Credit Summary\n\n` +
-          `Total Available Credits: ${totalAvailableCredits.toLocaleString()} tCO2e\n\n` +
-          `Credit Breakdown:\n${creditDetails}`
-        );
+        // alert(
+        //   `📊 Your Credit Summary\n\n` +
+        //   `Total Available Credits: ${totalAvailableCredits.toLocaleString()} tCO2e\n\n` +
+        //   `Credit Breakdown:\n${creditDetails}`
+        // );
       } else {
-        alert(`You currently have no credits available.`);
+        // alert(`You currently have no credits available.`);
       }
     }
   };
