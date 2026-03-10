@@ -17,7 +17,7 @@ function App() {
         <Routes>
           <Route path="/C6XChange" element={<LandingPage />} />
           <Route path="/C6XChange/login" element={<Login />} />
-          <Route path="/C6XChange/admin/login" element={<AdminLogin />} />
+          <Route path="/C6XChange/admin" element={<AdminLogin />} />
           <Route 
             path="/C6XChange/admin/dashboard" 
             element={
